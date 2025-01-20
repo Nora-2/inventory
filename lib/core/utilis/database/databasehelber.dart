@@ -10,53 +10,67 @@ class DatabaseHelper {
       return _database!;
     }
   
-    Future<Database> _initDatabase() async {
-      final databasePath = await getDatabasesPath();
-      final path = join(databasePath, 'store.db');
-      return await openDatabase(
-        path,
-        version: 1,
-        onCreate: (db, version) async {
-          await db.execute(
-            'CREATE TABLE cars (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)',
-          );
-          await db.execute(
-            'CREATE TABLE categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)',
-          );
-           await db.execute(
-            'CREATE TABLE products (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, category_id INTEGER, price REAL, FOREIGN KEY (category_id) REFERENCES categories(id))',
-          );
-            await db.execute(
-            'CREATE TABLE warehouse_products (id INTEGER PRIMARY KEY AUTOINCREMENT, product_id INTEGER, quantity INTEGER, FOREIGN KEY (product_id) REFERENCES products(id))',
-          );
-           await db.execute(
-            'CREATE TABLE car_loads (id INTEGER PRIMARY KEY AUTOINCREMENT, car_id INTEGER, product_id INTEGER, quantity INTEGER, load_date TEXT, FOREIGN KEY (car_id) REFERENCES cars(id), FOREIGN KEY (product_id) REFERENCES products(id))',
-          );
-          await db.execute(
-            'CREATE TABLE sales (id INTEGER PRIMARY KEY AUTOINCREMENT, car_id INTEGER, sale_date TEXT, total_amount REAL, FOREIGN KEY (car_id) REFERENCES cars(id))',
-          );
-           await db.execute(
-            'CREATE TABLE discounts (id INTEGER PRIMARY KEY AUTOINCREMENT, car_id INTEGER, discount_date TEXT, discount_amount REAL, FOREIGN KEY (car_id) REFERENCES cars(id))',
-          );
-           await db.execute(
-            'CREATE TABLE returns (id INTEGER PRIMARY KEY AUTOINCREMENT, product_id INTEGER, return_date TEXT, quantity INTEGER,car_id INTEGER, FOREIGN KEY (product_id) REFERENCES products(id),  FOREIGN KEY (car_id) REFERENCES cars(id))',
-          );
-            await db.execute(
-            'CREATE TABLE weekly_payments (id INTEGER PRIMARY KEY AUTOINCREMENT, car_id INTEGER, payment_date TEXT, amount REAL, FOREIGN KEY (car_id) REFERENCES cars(id))',
-          );
-             await db.execute(
-            'CREATE TABLE reminder (id INTEGER PRIMARY KEY AUTOINCREMENT, car_id INTEGER, payment_date TEXT, amount REAL, FOREIGN KEY (car_id) REFERENCES cars(id))',
-          );
-          await db.execute(
-            'CREATE TABLE products_in_car (id INTEGER PRIMARY KEY AUTOINCREMENT, car_id INTEGER, product_id INTEGER, quantity INTEGER, FOREIGN KEY (car_id) REFERENCES cars(id), FOREIGN KEY (product_id) REFERENCES products(id))',
-          );
-          await db.execute(
-            'CREATE TABLE products_in_car_history (id INTEGER PRIMARY KEY AUTOINCREMENT, car_id INTEGER, product_id INTEGER, quantity INTEGER, end_of_week_date TEXT, FOREIGN KEY (car_id) REFERENCES cars(id), FOREIGN KEY (product_id) REFERENCES products(id))',
-          );
-        },
+Future<Database> _initDatabase() async {
+  final databasePath = await getDatabasesPath();
+  final path = join(databasePath, 'store.db');
+  return await openDatabase(
+    path,
+    version: 2, // Increment the version number
+    onCreate: (db, version) async {
+      await db.execute(
+        'CREATE TABLE cars (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)',
+      );
+      await db.execute(
+        'CREATE TABLE categories (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)',
+      );
+      await db.execute(
+        'CREATE TABLE products (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, category_id INTEGER, price REAL, FOREIGN KEY (category_id) REFERENCES categories(id))',
+      );
+      await db.execute(
+        'CREATE TABLE warehouse_products (id INTEGER PRIMARY KEY AUTOINCREMENT, product_id INTEGER, quantity INTEGER, FOREIGN KEY (product_id) REFERENCES products(id))',
+      );
+      await db.execute(
+        'CREATE TABLE car_loads (id INTEGER PRIMARY KEY AUTOINCREMENT, car_id INTEGER, product_id INTEGER, quantity INTEGER, load_date TEXT, product_price REAL, FOREIGN KEY (car_id) REFERENCES cars(id), FOREIGN KEY (product_id) REFERENCES products(id))', //Added product_price
+      );
+      await db.execute(
+        'CREATE TABLE sales (id INTEGER PRIMARY KEY AUTOINCREMENT, car_id INTEGER, sale_date TEXT, total_amount REAL, FOREIGN KEY (car_id) REFERENCES cars(id))',
+      );
+      await db.execute(
+        'CREATE TABLE discounts (id INTEGER PRIMARY KEY AUTOINCREMENT, car_id INTEGER, discount_date TEXT, discount_amount REAL, FOREIGN KEY (car_id) REFERENCES cars(id))',
+      );
+      await db.execute(
+        'CREATE TABLE returns (id INTEGER PRIMARY KEY AUTOINCREMENT, product_id INTEGER, return_date TEXT, quantity INTEGER,car_id INTEGER, FOREIGN KEY (product_id) REFERENCES products(id),  FOREIGN KEY (car_id) REFERENCES cars(id))',
+      );
+      await db.execute(
+        'CREATE TABLE weekly_payments (id INTEGER PRIMARY KEY AUTOINCREMENT, car_id INTEGER, payment_date TEXT, amount REAL, FOREIGN KEY (car_id) REFERENCES cars(id))',
+      );
+       await db.execute(
+        'CREATE TABLE reminder (id INTEGER PRIMARY KEY AUTOINCREMENT, car_id INTEGER, payment_date TEXT, amount REAL, FOREIGN KEY (car_id) REFERENCES cars(id))',
+      );
+      await db.execute(
+        'CREATE TABLE products_in_car (id INTEGER PRIMARY KEY AUTOINCREMENT, car_id INTEGER, product_id INTEGER, quantity INTEGER, FOREIGN KEY (car_id) REFERENCES cars(id), FOREIGN KEY (product_id) REFERENCES products(id))',
+      );
+     await db.execute(
+        'CREATE TABLE products_in_car_history (id INTEGER PRIMARY KEY AUTOINCREMENT, car_id INTEGER, product_id INTEGER, quantity INTEGER, end_of_week_date TEXT, FOREIGN KEY (car_id) REFERENCES cars(id), FOREIGN KEY (product_id) REFERENCES products(id))',
+      );
+    },
+    onUpgrade: (db, oldVersion, newVersion) async {
+       if (oldVersion < 2) {
+        await db.execute(
+       'ALTER TABLE car_loads ADD COLUMN product_price REAL;'
+     );
+   }
+    }
+  );
+}
+      Future<List<Map<String, dynamic>>> getHistoryProductsInCar(int carId) async {
+      final db = await database;
+      return await db.query(
+        'products_in_car_history',
+        where: 'car_id = ?',
+        whereArgs: [carId],
       );
     }
-    
     Future<void> _copyCurrentWeekDataToHistory() async {
         final db = await database;
     
@@ -178,37 +192,40 @@ class DatabaseHelper {
           // Insert products
           List<Map<String, dynamic>> products = [
             {'name': 'سودانى', 'category_id': kiloCategory, 'price': 110},
-           {'name': 'لب ابيض', 'category_id': kiloCategory, 'price': 230},
-           {'name': 'لب سوبر عالي', 'category_id': kiloCategory, 'price': 160},
-            {'name': 'لب عباد عالي', 'category_id': kiloCategory, 'price': 85},
-            {'name': 'لب سوبر وسط', 'category_id': kiloCategory, 'price': 130},
-            {'name': 'لب عباد وسط', 'category_id': kiloCategory, 'price': 75},
+           {'name': 'لب ابيض', 'category_id': kiloCategory, 'price': 220},
+           {'name': 'لب سوبر عالي', 'category_id': kiloCategory, 'price': 150},
+            {'name': 'لب عباد عالي', 'category_id': kiloCategory, 'price': 80},
+            {'name': 'لب سوبر وسط', 'category_id': kiloCategory, 'price': 125},
+            {'name': 'لب عباد وسط', 'category_id': kiloCategory, 'price': 70},
             {'name': 'حمص عشره', 'category_id': tartCategory, 'price': 800},
-             {'name': 'مشكل خمسه', 'category_id': tartCategory, 'price': 380},
-              {'name': 'سوبر خمسه', 'category_id': tartCategory, 'price': 380},
-               {'name': 'حمص خمسه', 'category_id': tartCategory, 'price': 380},
+             {'name': 'مشكل خمسه', 'category_id': tartCategory, 'price': 370},
+              {'name': 'سوبر خمسه', 'category_id': tartCategory, 'price': 370},
+               {'name': 'حمص خمسه', 'category_id': tartCategory, 'price': 370},
                  {'name': 'عباد جنيه', 'category_id': tartCategory, 'price': 170},
                   {'name': 'سوبر جنيه', 'category_id': tartCategory, 'price': 170},
                  {'name': 'فسدق جنيه', 'category_id': tartCategory, 'price': 170},
                    {'name': 'مقرمش جنيه', 'category_id': tartCategory, 'price': 170},
                      {'name': 'حمص جنيه', 'category_id': tartCategory, 'price': 170},
                    {'name': 'شكوبون جنيه', 'category_id': tartCategory, 'price': 170},
-               {'name': 'صلاح', 'category_id': juiceCategory, 'price': 40},
-              {'name': 'اخضر', 'category_id': juiceCategory, 'price': 40},
-             {'name': 'مسطره جنيه', 'category_id': juiceCategory, 'price': 40},
-             {'name': 'مسطره نص جنيه', 'category_id': juiceCategory, 'price': 40},
-                {'name': 'بيبو', 'category_id': juiceCategory, 'price': 40},
-            {'name': 'دماس', 'category_id': varietyCategory, 'price': 330},
-            {'name': 'كونو', 'category_id': varietyCategory, 'price': 100},
-             {'name': 'كولا', 'category_id': varietyCategory, 'price': 50},
+               {'name': 'صلاح', 'category_id': juiceCategory, 'price': 38},
+              {'name': 'اخضر', 'category_id': juiceCategory, 'price': 38},
+             {'name': 'مسطره جنيه', 'category_id': juiceCategory, 'price': 38},
+             {'name': 'مسطره نص جنيه', 'category_id': juiceCategory, 'price': 38},
+                {'name': 'بيبو', 'category_id': juiceCategory, 'price': 38},
+            {'name': 'دماس', 'category_id': varietyCategory, 'price': 320},
+            {'name': 'كونو', 'category_id': varietyCategory, 'price': 95},
+             {'name': 'كولا', 'category_id': varietyCategory, 'price': 48},
               {'name': 'لبناني', 'category_id': varietyCategory, 'price': 270},
-              {'name': 'جردل شوكولاته', 'category_id': varietyCategory, 'price': 350},
-               {'name': 'جردل شكوبون', 'category_id': varietyCategory, 'price': 350},
-                {'name': 'جردل كرسبي', 'category_id': varietyCategory, 'price': 160},
+              {'name': 'جردل شوكولاته', 'category_id': varietyCategory, 'price': 340},
+               {'name': 'جردل شكوبون', 'category_id': varietyCategory, 'price': 340},
+                {'name': 'جردل كرسبي', 'category_id': varietyCategory, 'price': 150},
             {'name': 'كيري', 'category_id': varietyCategory, 'price': 270},
-           {'name': 'مصاصه', 'category_id': varietyCategory, 'price': 210},
-             {'name': 'توفي', 'category_id': varietyCategory, 'price': 100},
-             {'name': 'عسليه', 'category_id': varietyCategory, 'price': 100},
+           {'name': ' مصاصه الربيع', 'category_id': varietyCategory, 'price': 210},
+             {'name': 'توفي', 'category_id': varietyCategory, 'price': 200},
+             {'name': 'عسليه جنيه', 'category_id': varietyCategory, 'price': 110},
+                   {'name': ' مصاصه كيكي', 'category_id': varietyCategory, 'price':550},
+             {'name': 'عسليه خمسه جنيه', 'category_id': varietyCategory, 'price': 190},
+             {'name': 'لب مقشر', 'category_id': varietyCategory, 'price': 950},
           ];
           for (var product in products) {
             await db.insert('products', product);
@@ -281,19 +298,23 @@ class DatabaseHelper {
         });
     }
   
-    Future<void> addLoad(int carId, int productId, int quantity) async {
-      final db = await database;
-      print(
-          "Adding load: carId=$carId, productId=$productId, quantity=$quantity");
-          //updated here to decrease quantity
-          await updateWarehouseQuantity(productId, -quantity);
-      await db.insert('car_loads', {
-        'car_id': carId,
-        'product_id': productId,
-        'quantity': quantity,
-        'load_date': DateTime.now().toIso8601String().substring(0, 10),
-      });
-    }
+  Future<void> addLoad(int carId, int productId, int quantity) async {
+  final db = await database;
+  print(
+      "Adding load: carId=$carId, productId=$productId, quantity=$quantity");
+      //updated here to decrease quantity
+      await updateWarehouseQuantity(productId, -quantity);
+  final productData = await db.query('products',
+      where: 'id = ?', whereArgs: [productId]);
+  double productPrice = productData.first['price'] as double? ?? 0.0;
+  await db.insert('car_loads', {
+    'car_id': carId,
+    'product_id': productId,
+    'quantity': quantity,
+    'load_date': DateTime.now().toIso8601String().substring(0, 10),
+    'product_price': productPrice, // include the price
+  });
+}
     
      Future<void> addProductToCar(int carId, int productId, int quantity) async {
         final db = await database;

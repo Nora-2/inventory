@@ -296,7 +296,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                   items: snapshot.data!.map((product) {
                     return DropdownMenuItem<int>(
                       value: product['id'] as int,
-                      child: Text(product['name'] as String),
+                      child: Text("${product['name'] as String} ${product['price']}"),
                     );
                   }).toList(),
                   onChanged: (value) {

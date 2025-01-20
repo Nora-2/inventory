@@ -304,13 +304,14 @@ class _HomePageState extends State<HomePage> {
                         MaterialPageRoute(
                             builder: (context) => ReportScreen(
                                   getCars: _getCars,
+                                  
                                   getSalesForCar: _getSalesForCar,
                                   getLoadsForCar: _getLoadsForCar,
                                   getDiscountsForCar: _getDiscountsForCar,
                                   getProducts: _getProducts,
                                   getReturnsForCar: (carId) {
                                    return _databaseHelper.getReturnsForCar(carId);
-                                  }, getProductsInCar: (id) { return _databaseHelper.getProductsInCar(id); },
+                                  }, getProductsInCar: (id) { return _databaseHelper.getProductsInCar(id); }, getPreviousWeekProductsInCar: (id  ) { return _databaseHelper.getHistoryProductsInCar(id,); },
                                 )),
                       );
                     },
@@ -325,7 +326,10 @@ class _HomePageState extends State<HomePage> {
                         MaterialPageRoute(
                             builder: (context) => JurdScreen(
                                   getLoadsForCar: _getLoadsForCar,
+                                  getProductsInCar: (id) { return _databaseHelper.getProductsInCar(id); },
+                                  getHistoryProductsInCar: (id) { return _databaseHelper.getHistoryProductsInCar(id); },
                                   getDiscountsForCar: _getDiscountsForCar,
+                                  getReturnsForCar: (id){ return _databaseHelper.getReturnsForCar(id); },
                                   getReturns: _getReturns,
                                   getCars: _getCars,
                                   getProducts: _getProducts,

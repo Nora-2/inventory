@@ -18,15 +18,19 @@ class ReportScreen extends StatefulWidget {
   final Future<List<Map<String, dynamic>>> Function(int) getReturnsForCar;
   final Future<List<Map<String, dynamic>>> Function() getProducts;
   final Future<List<Map<String, dynamic>>> Function(int) getProductsInCar;
+  final Future<List<Map<String, dynamic>>> Function(int)
+      getPreviousWeekProductsInCar;
 
-  ReportScreen(
-      {required this.getCars,
-      required this.getSalesForCar,
-      required this.getLoadsForCar,
-      required this.getDiscountsForCar,
-      required this.getReturnsForCar,
-      required this.getProducts,
-      required this.getProductsInCar});
+  ReportScreen({
+    required this.getCars,
+    required this.getSalesForCar,
+    required this.getLoadsForCar,
+    required this.getDiscountsForCar,
+    required this.getReturnsForCar,
+    required this.getProducts,
+    required this.getProductsInCar,
+    required this.getPreviousWeekProductsInCar,
+  });
 
   @override
   _ReportScreenState createState() => _ReportScreenState();
@@ -43,16 +47,16 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   Future<void> _loadFont() async {
-    final fontData =
-        await rootBundle.load('assets/fonts/Cairo-VariableFont_slnt,wght.ttf');
+    final fontData = await rootBundle
+        .load('assets/fonts/Cairo-VariableFont_slnt,wght.ttf');
     arabicFont = pw.Font.ttf(fontData);
     setState(() {
       _fontLoaded = true;
     });
   }
 
-  Future<void> _printWeeklyReport(
-      List<Map<String, dynamic>> weeklyReport) async {
+Future<void> _printWeeklyReport(
+    List<Map<String, dynamic>> weeklyReport) async {
     if (!_fontLoaded) {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('الخط العربي غير متوفر')));
@@ -111,6 +115,12 @@ class _ReportScreenState extends State<ReportScreen> {
                                     fontWeight: pw.FontWeight.bold,
                                     font: arabicFont),
                                 textDirection: pw.TextDirection.rtl)),
+                         pw.Center(
+                            child: pw.Text('جرد المنتجات',
+                                style: pw.TextStyle(
+                                    fontWeight: pw.FontWeight.bold,
+                                    font: arabicFont),
+                                textDirection: pw.TextDirection.rtl)),
                         pw.Center(
                             child: pw.Text('الإجمالي',
                                 style: pw.TextStyle(
@@ -120,9 +130,11 @@ class _ReportScreenState extends State<ReportScreen> {
                       ],
                     ),
                     ...weeklyReport.map((report) {
-                      double total = (report['loads'] as double) -
+                          double productDifference = report['productDifference'] as double;
+                          double total = (report['loads'] as double) -
                           (report['discount'] as double) -
-                          (report['sales'] as double);
+                          (report['sales'] as double) +
+                          productDifference;
                       return pw.TableRow(
                         children: [
                           pw.Center(
@@ -137,6 +149,9 @@ class _ReportScreenState extends State<ReportScreen> {
                                   textDirection: pw.TextDirection.rtl)),
                           pw.Center(
                               child: pw.Text('${report['loads']}',
+                                  textDirection: pw.TextDirection.rtl)),
+                        pw.Center(
+                              child: pw.Text('$productDifference',
                                   textDirection: pw.TextDirection.rtl)),
                           pw.Center(
                               child: pw.Text('$total',
@@ -166,7 +181,11 @@ class _ReportScreenState extends State<ReportScreen> {
                         style: pw.TextStyle(font: arabicFont)),
                     pw.Text(
                         textDirection: pw.TextDirection.rtl,
-                        'الإجمالي الأسبوعي:   ${weeklyReport.fold(0.0, (sum, item) => sum + ((item['loads'] as double) - (item['discount'] as double) - (item['sales'] as double)))}',
+                         'اجمالي جرد المنتجات الأسبوعي:  ${weeklyReport.fold(0.0, (sum, item) => sum + (item['productDifference'] as double))}',
+                        style: pw.TextStyle(font: arabicFont)),
+                    pw.Text(
+                        textDirection: pw.TextDirection.rtl,
+                        'الإجمالي الأسبوعي:   ${weeklyReport.fold(0.0, (sum, item) => sum + ((item['loads'] as double) - (item['discount'] as double) - (item['sales'] as double) + (item['productDifference'] as double)))}',
                         style: pw.TextStyle(font: arabicFont)),
                   ],
                 ),
@@ -191,6 +210,8 @@ class _ReportScreenState extends State<ReportScreen> {
         getDiscountsForCar: widget.getDiscountsForCar,
         getReturnsForCar: widget.getReturnsForCar,
         getProducts: widget.getProducts,
+        getProductsInCar: widget.getProductsInCar,
+        getHistoryProductsInCar: widget.getPreviousWeekProductsInCar,
       ),
       builder: (controller) {
         return Scaffold(
@@ -280,109 +301,121 @@ class _ReportScreenState extends State<ReportScreen> {
                       );
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('الرجاء اختيار سيارة'),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    }
-                  },
-                  text: 'جرد المنتجات',
-                ),
-                sized.s20,
-                Custombutton(
-                  onPressed: () {
-                    if (controller.weeklyReport.isNotEmpty) {
-                      _printWeeklyReport(controller.weeklyReport);
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('لا يوجد بيانات لطباعة التقرير'),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    }
-                  },
-                  text: 'طباعة التقرير الأسبوعي',
-                ),
-                sized.s20,
-                Expanded(
-                    child: Obx(() => controller.weeklyReport.isNotEmpty
-                        ? SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: DataTable(
-                              columns: _createTableColumns(),
-                              rows: _createTableRows(controller.weeklyReport),
+                            const SnackBar(
+                              content: Text('الرجاء اختيار سيارة'),
+                              duration: Duration(seconds: 2),
                             ),
-                          )
-                        : const Center(
-                            child: Text('لا يوجد بيانات'),
-                          ))),
-                Obx(
-                  () => controller.weeklyReport.isNotEmpty
-                      ? Padding(
-                          padding: const EdgeInsets.only(
-                            top: 16,
-                            right: 4,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              Text(
-                                  'اجمالي المبيعات الأسبوعية :   ${controller.weeklyReport.fold(0.0, (sum, item) => sum + (item['sales'] as double))}'),
-                              Text(
-                                  'اجمالي الخصومات الأسبوعية:   ${controller.weeklyReport.fold(0.0, (sum, item) => sum + (item['discount'] as double))}'),
-                              Text(
-                                  'اجمالي الحمولة الأسبوعية:   ${controller.weeklyReport.fold(0.0, (sum, item) => sum + (item['loads'] as double))}'),
-                              Text(
-                                  'الإجمالي الأسبوعي:   ${controller.weeklyReport.fold(0.0, (sum, item) => sum + ((item['loads'] as double) - (item['discount'] as double) - (item['sales'] as double)))}'),
-                            ],
-                          ))
-                      : const SizedBox.shrink(),
-                )
-              ],
-            ),
-          ),
+                          );
+                        }
+                      },
+                      text: 'جرد المنتجات',
+                    ),
+                    sized.s20,
+                    Custombutton(
+                      onPressed: () {
+                        if (controller.weeklyReport.isNotEmpty) {
+                          _printWeeklyReport(controller.weeklyReport);
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('لا يوجد بيانات لطباعة التقرير'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        }
+                      },
+                      text: 'طباعة التقرير الأسبوعي',
+                    ),
+                    sized.s20,
+                    Expanded(
+                        child: Obx(() => controller.weeklyReport.isNotEmpty
+                            ? SingleChildScrollView(
+                               scrollDirection: Axis.vertical,
+                              child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: DataTable(
+                                    columns: _createTableColumns(),
+                                    rows:
+                                        _createTableRows(controller.weeklyReport),
+                                  ),
+                                ),
+                            )
+                            : const Center(
+                                child: Text('لا يوجد بيانات'),
+                              ))),
+                    Obx(
+                      () => controller.weeklyReport.isNotEmpty
+                          ? Padding(
+                              padding: const EdgeInsets.only(
+                                top: 16,
+                                right: 4,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  Text(
+                                      'اجمالي المبيعات الأسبوعية :   ${controller.weeklyReport.fold(0.0, (sum, item) => sum + (item['sales'] as double))}'),
+                                  Text(
+                                      'اجمالي الخصومات الأسبوعية:   ${controller.weeklyReport.fold(0.0, (sum, item) => sum + (item['discount'] as double))}'),
+                                  Text(
+                                      'اجمالي الحمولة الأسبوعية:   ${controller.weeklyReport.fold(0.0, (sum, item) => sum + (item['loads'] as double))}'),
+
+                                  Text(
+                                      'الإجمالي الأسبوعي:   ${controller.weeklyReport.fold(0.0, (sum, item) => sum + ((item['loads'] as double) - (item['discount'] as double) - (item['sales'] as double) -(item['currentWeek'] as double)+ (item['previousWeek'] as double)))}'),
+                                ],
+                              ))
+                          : const SizedBox.shrink(),
+                    )
+                  ],
+                ),
+              ),
+            );
+          },
         );
-      },
-    );
-  }
-
-  List<DataColumn> _createTableColumns() {
-    return [
-      const DataColumn(
-          label:
-              Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold))),
-      const DataColumn(
-          label: Text('اجمالي المبيعات',
-              style: TextStyle(fontWeight: FontWeight.bold))),
-      const DataColumn(
-          label: Text('اجمالي الخصومات',
-              style: TextStyle(fontWeight: FontWeight.bold))),
-      const DataColumn(
-          label: Text('اجمالي الحمولة',
-              style: TextStyle(fontWeight: FontWeight.bold))),
-      const DataColumn(
-          label:
-              Text('الإجمالي', style: TextStyle(fontWeight: FontWeight.bold))),
-    ];
-  }
-
-  List<DataRow> _createTableRows(List<Map<String, dynamic>> weeklyReport) {
-    return weeklyReport.map((report) {
-      double total = (report['loads'] as double) -
+      }
+    
+    
+    
+      List<DataColumn> _createTableColumns() {
+        return [
+          const DataColumn(
+              label: Text('التاريخ',
+                  style: TextStyle(fontWeight: FontWeight.bold))),
+          const DataColumn(
+              label: Text('اجمالي المبيعات',
+                  style: TextStyle(fontWeight: FontWeight.bold))),
+          const DataColumn(
+              label: Text('اجمالي الخصومات',
+                  style: TextStyle(fontWeight: FontWeight.bold))),
+          const DataColumn(
+              label: Text('اجمالي الحمولة',
+                  style: TextStyle(fontWeight: FontWeight.bold))),
+   
+          const DataColumn(
+              label: Text('الإجمالي',
+                  style: TextStyle(fontWeight: FontWeight.bold))),
+        ];
+      }
+    
+     List<DataRow> _createTableRows(List<Map<String, dynamic>> weeklyReport) {
+      return weeklyReport.map((report) {
+       double total = (report['loads'] as double) -
           (report['discount'] as double) -
-          (report['sales'] as double);
+          (report['sales'] as double)-  (report['currentWeek'] as double) + (report['previousWeek'] as double);
       return DataRow(
         cells: [
-          DataCell(Text(report['date'].toString().substring(0, 10))),
-          DataCell(Center(child: Text('${report['sales']}'))),
-          DataCell(Center(child: Text('${report['discount']}'))),
-          DataCell(Center(child: Text('${report['loads']}'))),
-          DataCell(Center(child: Text('$total'))),
+           DataCell(Text(report['date'].toString().substring(0, 10))),
+              DataCell(Center(child: Text('${report['sales']}'))),
+              DataCell(Center(child: Text('${report['discount']}'))),
+              DataCell(Center(child: Text('${report['loads']}'))),
+        
+              DataCell(Center(child: Text('$total'))),
         ],
       );
     }).toList();
-  }
-}
+    }
+    }
+    
+
+   

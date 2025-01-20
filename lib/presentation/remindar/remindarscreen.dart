@@ -46,7 +46,7 @@ class _AddReminderScreenState extends State<AddReminderScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('إضافة مبلغ تذكير'),
+        title: const Text('إضافة مبلغ ماضي'),
         backgroundColor: Appcolors.primarycolor,
       ),
       body: Center(

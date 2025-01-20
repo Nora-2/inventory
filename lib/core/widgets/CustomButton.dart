@@ -17,12 +17,8 @@ class Custombutton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
- 
-    final height = MediaQuery.of(context).size.height;
     return Card(
       child: Container(
-        
-        height: height * 0.06,
         decoration: BoxDecoration(
           gradient: AppGradients.primaryGradient,
           borderRadius: BorderRadius.circular(borderRadius),
@@ -36,12 +32,17 @@ class Custombutton extends StatelessWidget {
             ),
           ),
           onPressed: onPressed,
-          child: Center(
-            child: Text(
-              text,
-              style: ArabicTextStyle(
-                arabicFont: ArabicFont.dinNextLTArabic, fontSize: 25,color: Appcolors.whicolor),
-          
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Center(
+              child: Text(
+                text,
+                textAlign: TextAlign.center,
+                style: ArabicTextStyle(
+                 
+                  arabicFont: ArabicFont.dinNextLTArabic, fontSize: 25,color: Appcolors.whicolor),
+            
+              ),
             ),
           ),
         ),

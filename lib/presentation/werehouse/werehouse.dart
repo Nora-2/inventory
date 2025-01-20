@@ -102,7 +102,7 @@ class _WarehouseScreenState extends State<WarehouseScreen> {
                                 element['id'] == warehouseProduct['product_id'],
                             orElse: () => {'name': 'unknown'});
                           return DataRow(cells: [
-                            DataCell(Text(product['name'] as String)),
+                            DataCell(Text("${product['name'] as String} ${product['price']}")),
                              DataCell(Text(warehouseProduct['quantity'].toString())),
                          ]);
                       }).toList(),

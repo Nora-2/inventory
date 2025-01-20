@@ -137,9 +137,9 @@ class _DailyLoadReportScreenState extends State<DailyLoadReportScreen> {
         (product) => product['id'] == load['product_id'],
         orElse: () => {},
       );
-      final price = product['price'] as double? ?? 0.0;
+      final price = load['product_price'] as double? ?? 0.0;
       final quantity = load['quantity'] as int;
-      final rowTotal = price * quantity;
+      final rowTotal = price* quantity;
       totalAmount += rowTotal;
       return pw.TableRow(
         children: [
